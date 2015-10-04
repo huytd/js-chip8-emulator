@@ -1,0 +1,11 @@
+<script src='app.js'></script>
+<script>
+    console.log('Load rom: PONG...');
+    var chip = new Chip8();
+    chip.open('roms/PONG').then(function(){
+        (function main(){
+          requestAnimFrame(main);
+          chip.cycle();
+        })();
+    });
+</script>
