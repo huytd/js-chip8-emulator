@@ -1,6 +1,6 @@
 console.doc = function(msg) {
     console.log(msg);
-    document.write(msg + "<br/>");
+    //document.write(msg + "<br/>");
 }
 
 window.requestAnimFrame = (function(){
@@ -13,6 +13,12 @@ window.requestAnimFrame = (function(){
 })();
 
 var Chip8 = function() {
+    this.displayWidth = 64;
+    this.displayHeight = 32;
+    this.display = new Array(this.displayWidth * this.displayHeight);
+    this.renderer = null;
+    self.drawFlag = false;
+
     this.pc = 0;
     this.memory = new Uint8Array(new ArrayBuffer(0x1000)); // 4Kb RAM
     this.v = new Array(16);
@@ -21,6 +27,10 @@ var Chip8 = function() {
     this.sp = null;
 
     this.reset();
+};
+
+Chip8.prototype.setRenderer = function(renderer) {
+  this.renderer = renderer;
 };
 
 Chip8.prototype.reset = function() {
@@ -55,9 +65,40 @@ Chip8.prototype.reset = function() {
       this.v[i] = 0;
     }
 
+    for (i = 0; i < this.display.length; i++) {
+      this.display[i] = 0;
+    }
+    self.drawFlag = false;
+
     this.pc = 0x200;
     this.sp = 0;
     this.i = 0;
+};
+
+Chip8.prototype.start = function() {
+  if (!this.renderer) {
+    throw new Error("You must specify a renderer.");
+  }
+  var self = this;
+  requestAnimFrame(function main() {
+    for (var i = 0; i < 10; i++) {
+      //if (self.running) {
+      self.cycle();
+      //}
+    }
+
+    if (self.drawFlag) {
+      self.renderer.render(self.display);
+      self.drawFlag = false;
+    }
+
+  // if ( ! (self.step++ % 2)) {
+  //   self.handleTimers();
+  // }
+
+    requestAnimFrame(main);
+
+  });
 };
 
 Chip8.prototype.open = function(url) {
@@ -86,6 +127,40 @@ Chip8.prototype.loadProgram = function(program) {
         }
         resolve();
     });
+};
+
+Chip8.prototype.getDisplayWidth = function () {
+  return this.displayWidth;
+};
+
+Chip8.prototype.getDisplayHeight = function () {
+  return this.displayHeight;
+};
+
+Chip8.prototype.setPixel = function(x, y) {
+  var location,
+  width = this.getDisplayWidth(),
+  height = this.getDisplayHeight();
+
+  // If the pixel exceeds the dimensions,
+  // wrap it back around.
+  if (x > width) {
+    x -= width;
+  } else if (x < 0) {
+    x += width;
+  }
+
+  if (y > height) {
+    y -= height;
+  } else if (y < 0) {
+    y += height;
+  }
+
+  location = x + (y * width);
+
+  this.display[location] ^= 1;
+
+  return !this.display[location];
 };
 
 Chip8.prototype.cycle = function() {
@@ -117,6 +192,10 @@ Chip8.prototype.cycle = function() {
                 // 00E0 - CLS
                 case 0x00E0:
                     console.doc("CLS");
+                    this.renderer.clear();
+                    for (var i = 0; i < this.display.length; i++) {
+                      this.display[i] = 0;
+                    }
                     break;
                 // 00EE - RET
                 case 0x00EE:
@@ -265,6 +344,25 @@ Chip8.prototype.cycle = function() {
         // Dxyn - DRW Vx, Vy, nibble
         case 0xD000:
             console.doc("DRW V" + x + ", V" + y + ", " + n);
+            this.v[0xF] = 0;
+
+            var height = opcode & 0x000F;
+            var registerX = this.v[x];
+            var registerY = this.v[y];
+            var x, y, spr;
+
+            for (y = 0; y < height; y++) {
+              spr = this.memory[this.i + y];
+              for (x = 0; x < 8; x++) {
+                if ((spr & 0x80) > 0) {
+                  if (this.setPixel(registerX + x, registerY + y)) {
+                    this.v[0xF] = 1;
+                  }
+                }
+                spr <<= 1;
+              }
+              this.drawFlag = true;
+            }
             break;
         // Ex**
         case 0xE000:

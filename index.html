@@ -1,11 +1,18 @@
+<style>
+#gfx {
+  width: 640px;
+  height: 320px;
+}
+</style>
+<canvas id="gfx"></canvas>
+<script src='renderer.js'></script>
 <script src='app.js'></script>
 <script>
     console.log('Load rom: PONG...');
     var chip = new Chip8();
+    var renderer = new GameRenderer(document.getElementById('gfx'), chip.getDisplayWidth(), chip.getDisplayHeight(), 8);
+    chip.setRenderer(renderer);
     chip.open('roms/PONG').then(function(){
-        (function main(){
-          requestAnimFrame(main);
-          chip.cycle();
-        })();
+      chip.start();
     });
 </script>
