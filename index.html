@@ -8,11 +8,11 @@
 <script src='renderer.js'></script>
 <script src='app.js'></script>
 <script>
-    console.log('Load rom: PONG...');
+    console.log('Load rom: INVADERS...');
     var chip = new Chip8();
     var renderer = new GameRenderer(document.getElementById('gfx'), chip.getDisplayWidth(), chip.getDisplayHeight(), 8);
     chip.setRenderer(renderer);
-    chip.open('roms/PONG').then(function(){
+    chip.open('roms/INVADERS').then(function(){
       chip.start();
     });
 </script>
