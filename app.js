@@ -19,6 +19,9 @@ var Chip8 = function() {
     this.renderer = null;
     self.drawFlag = false;
 
+    this.running = false;
+    this.step = 0;
+
     this.pc = 0;
     this.memory = new Uint8Array(new ArrayBuffer(0x1000)); // 4Kb RAM
     this.v = new Array(16);
@@ -73,6 +76,10 @@ Chip8.prototype.reset = function() {
     this.pc = 0x200;
     this.sp = 0;
     this.i = 0;
+
+    this.step = 0;
+    this.delayTimer = 0;
+    this.running = false;
 };
 
 Chip8.prototype.start = function() {
@@ -80,11 +87,12 @@ Chip8.prototype.start = function() {
     throw new Error("You must specify a renderer.");
   }
   var self = this;
+  self.running = true;
   requestAnimFrame(function main() {
     for (var i = 0; i < 10; i++) {
-      //if (self.running) {
-      self.cycle();
-      //}
+      if (self.running) {
+        self.cycle();
+      }
     }
 
     if (self.drawFlag) {
@@ -92,13 +100,19 @@ Chip8.prototype.start = function() {
       self.drawFlag = false;
     }
 
-  // if ( ! (self.step++ % 2)) {
-  //   self.handleTimers();
-  // }
+    if ( ! (self.step++ % 2)) {
+      self.handleTimers();
+    }
 
     requestAnimFrame(main);
 
   });
+};
+
+Chip8.prototype.handleTimers = function() {
+  if (this.delayTimer > 0) {
+    this.delayTimer--;
+  }
 };
 
 Chip8.prototype.open = function(url) {
@@ -175,9 +189,9 @@ Chip8.prototype.cycle = function() {
     // kk - 0x00FF
     var kk = opcode & 0x00FF;
     // x - 0x0F00
-    var x = opcode & 0x0F00 >> 8;
+    var x = (opcode & 0x0F00) >> 8;
     // y - 0x00F0
-    var y = opcode & 0x00F0 >> 4;
+    var y = (opcode & 0x00F0) >> 4;
 
     // Move pc to 2 byte
     this.pc += 2;
@@ -384,6 +398,7 @@ Chip8.prototype.cycle = function() {
                 // Fx07 - LD Vx, DT
                 case 0x0007:
                     console.log("LD V" + x + ", DT");
+                    this.v[x] = this.delayTimer;
                     break;
                 // Fx0A - LD Vx, K
                 case 0x000A:
@@ -392,6 +407,7 @@ Chip8.prototype.cycle = function() {
                 // Fx15 - LD DT, Vx
                 case 0x0015:
                     console.log("LD DT, V" + x);
+                    this.delayTimer = this.v[x];
                     break;
                 // Fx18 - LD ST, Vx
                 case 0x0018:

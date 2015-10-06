@@ -10,7 +10,7 @@
 <script>
     console.log('Load rom: INVADERS...');
     var chip = new Chip8();
-    var renderer = new GameRenderer(document.getElementById('gfx'), chip.getDisplayWidth(), chip.getDisplayHeight(), 8);
+    var renderer = new GameRenderer(document.getElementById('gfx'), chip.getDisplayWidth(), chip.getDisplayHeight(), 3);
     chip.setRenderer(renderer);
     chip.open('roms/INVADERS').then(function(){
       chip.start();
